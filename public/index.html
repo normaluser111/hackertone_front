@@ -1,43 +1,143 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>kakao 지도</title>
+</head>
+<body>
+  <div>
+    <label for="location">사용자님의 위치와 원 날짜, 장소, 시간을 알려주세요!:</label>
+    <input type="text" id="location" placeholder="장소 검색어를 입력하세요">
+    <button id="locationBtn">위치 선택</button>
+  </div>
+  <div>
+    <label for="category">장소 종류:</label>
+    <input type="text" id="category" placeholder="장소 종류를 입력하세요">
+  </div>
+  <div>
+    <label for="date">날짜:</label>
+    <input type="date" id="date">
+  </div>
+  <div>
+    <label for="time">시간:</label>
+    <input type="time" id="time">
+  </div>
+  <div>
+    <label for="people">인원:</label>
+    <input type="number" id="people">
+  </div>
+  <div id="map" style="width:500px;height:400px;"></div>
+  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=5a8d7281c3e1462f921db6867f9706f5"></script>
+  <script>
+    var container = document.getElementById('map');
+    var options = {
+      center: new kakao.maps.LatLng(37.610261563595, 127.29307759409), // 변경: 서울시청 위치
+      level: 6
+    };
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
+    var map = new kakao.maps.Map(container, options);
+    var marker;
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+    // 마커 클릭 시 인포윈도우 표시
+    var infowindow = new kakao.maps.InfoWindow({});
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
-  </body>
+    kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
+      if (marker) {
+        marker.setMap(null);
+      }
+
+      var latlng = mouseEvent.latLng;
+      marker = new kakao.maps.Marker({
+        position: latlng,
+        map: map
+      });
+
+      infowindow.setContent('<div>마커 위치: ' + latlng.getLat() + ', ' + latlng.getLng() + '</div>');
+      infowindow.open(map, marker);
+    });
+
+    locationBtn.addEventListener('click', function() {
+      var selectedLocation = locationInput.value;
+
+      // 카카오맵 장소 검색 기능 활용
+      var geocoder = new kakao.maps.services.Geocoder();
+      geocoder.addressSearch(selectedLocation, function(result, status) {
+        if (status === kakao.maps.services.Status.OK) {
+          var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+
+          // 검색된 위치로 지도 이동
+          map.setCenter(coords);
+
+          // 마커 클릭 시 인포윈도우 표시
+          var infowindow = new kakao.maps.InfoWindow({
+            content: selectedLocation
+          });
+
+          var marker = new kakao.maps.Marker({
+            position: coords,
+            map: map
+          });
+
+          kakao.maps.event.addListener(marker, 'click', function() {
+            infowindow.open(map, marker);
+          });
+        } else {
+          alert('장소를 찾을 수 없습니다.');
+        }
+      });
+    });
+
+    // 기존 코드
+    var userlatitude = 37.234567; // 사용자의 위도 데이터
+    var userlongitude = 128.876543; // 사용자의 경도 데이터
+    var places = [
+      {
+        name: '카페 A',
+        latitude: 37.123456,
+        longitude: 127.987654,
+        category: '1(cafe)'
+      },
+      {
+        name: '카페 B',
+        latitude: 37.123457,
+        longitude: 127.987655,
+        category: '1(cafe)'
+      },
+      {
+        name: '회의실 A',
+        latitude: 37.234567,
+        longitude: 128.876543,
+        category: '2(회의실)'
+      },
+      {
+        name: '회의실 B',
+        latitude: 37.234568,
+        longitude: 128.876544,
+        category: '2(회의실)'
+      }
+    ];
+
+    // 지도에 마커 추가
+    places.forEach(place => {
+      var markerColor = place.category_group_code === 'CE7' ? 'red' : 'blue';
+      var marker = new kakao.maps.Marker({
+        position: new kakao.maps.LatLng(place.latitude, place.longitude),
+        map: map,
+        image: new kakao.maps.MarkerImage(
+          `https://map.kakao.com/link/marker/${markerColor}.png`,
+          new kakao.maps.Size(24, 35),
+          { offset: new kakao.maps.Point(12, 35) }
+        )
+      });
+
+      var infowindow = new kakao.maps.InfoWindow({
+        content: `<div>${place.name}</div><div>${place.category}</div>`
+      });
+      kakao.maps.event.addListener(marker, 'click', function() {
+        infowindow.open(map, marker);
+      });
+    });
+
+  </script>
+</body>
 </html>
